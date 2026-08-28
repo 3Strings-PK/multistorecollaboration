@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Enums ---
+enum StoreStatus {
+  ACTIVE
+  SUSPENDED
+  UNINSTALLED
+}
+
+enum InstallStatus {
+  INSTALLED
+  UNINSTALLED
+  NEEDS_REAUTH
+}
+
+// --- Models ---
+
+// 0. Session (Shopify-framework-owned table)
+model Session {
+  id                    String    @id
+  shop                  String
+  state                 String
+  isOnline              Boolean   @default(false)
+  scope                 String?
+  expires               DateTime?
+  accessTokenEncrypted  Bytes     // Ciphertext - see SECURITY.md
+  userId                BigInt?
+  refreshToken          String?   // Required for April 2026 offline token mandate
+  refreshTokenExpires   DateTime?
+  
+  @@index([shop])
+}
+
+// 1. stores
+model Store {
+  id                String       @id @default(cuid())
+  shopifyShopId     String       @unique
+  shopDomain        String       @unique
+  shopName          String
+  shopOwnerName     String?
+  shopOwnerEmail    String?
+  currency          String
+  timezone          String
+  status            StoreStatus      @default(ACTIVE)
+  installationStatus InstallStatus   @default(INSTALLED)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  lastSeenAt        DateTime?
+}
